@@ -574,6 +574,66 @@ To add one, ask your AI helper to help you plan a new feature. It will use
   - [x] In the tree check, a damage photo ends with the warning and tips; a healthy-bark photo still says "Report made, thank you".
   - [ ] A grown-up redeployed the relay (version 13) before this was merged.
 
+## Innvadex: limited-time badges and monthly challenge badges
+
+- **Status:** Building
+- **Asked by:** Aadit, 2026-11-18
+- **Who it's for:** Everyday people, kids or adults, who play the Innvadex game.
+- **Our idea:**
+  - **5 new badges every 3 months**, starting November 2026 (Winter, then Spring, Summer, Fall,
+    and so on, forever): catch bugs, find native bugs, win battles, win minigames, and catch
+    different kinds. They count what you do during those 3 months.
+  - **Missed badges can still be earned:** after a season ends, what you do still counts toward
+    its badges you didn't get yet ("Catch up").
+  - **Monthly challenge badges** show on the Badges page too, as medals you can spin.
+  - Every badge, now and in the future, gets its own shape and cartoon.
+- **Done when:**
+  - [ ] The 5 new badges show each season with their dates.
+  - [ ] A missed badge can still be earned after its season.
+  - [ ] Monthly challenge badges show on the Badges page.
+
+## Innvadex: badges as medals (like Apple Watch awards)
+
+- **Status:** Building
+- **Asked by:** Aadit, 2026-11-18
+- **Who it's for:** Everyday people, kids or adults, who play the Innvadex game.
+- **Problem:** Badges were a plain list with an emoji, and you couldn't see when you got them.
+- **Our idea:**
+  - Each badge is a shiny medal with **its own shape** (no two are the same) and **its own
+    cartoon**, like the Innva-Orb for First Catch! and a little picture of each forest.
+  - Tap a badge to see it big and **why you got it**.
+  - Drag (or use the arrow keys or the Spin button) to **spin it in 3D**. The back is engraved
+    with the **date and time** you got it. Badges earned before this say so.
+- **Done when:**
+  - [ ] Every badge has a different shape and its own cartoon.
+  - [ ] Spinning a badge shows the date and time on the back.
+
+## Innvadex: 3D cutscenes, quizzes, read aloud, and cartoon bugs
+
+- **Status:** Building
+- **Asked by:** Aadit, 2026-11-18
+- **Who it's for:** Everyday people, kids or adults, who play the Innvadex game.
+- **Problem:** Cutscenes were long (beating Boss Burdock was 19 slides in a row), and you only
+  tapped Next. Many bugs looked the same, because most beetles were the same 🪲 emoji.
+- **Why it matters:** Short, interactive cutscenes keep people paying attention, and a cartoon
+  that looks like the real bug helps people recognize it outside.
+- **Our idea:**
+  - **3D cutscenes:** every cutscene happens in a 3D classroom at "Pyinsect University", with a
+    tiled floor, windows, a bookshelf, ceiling lights, and a big screen that shows the place in
+    the story. The camera turns a little toward whoever is talking.
+  - **Shorter:** most cutscenes are 2 to 5 slides now, and Team Tangle's motto plays only once.
+  - **Interactive:** quiz questions with answer buttons (a wrong answer explains why), and a bug
+    to tap and catch in How to play.
+  - **Read aloud is on by default** (it can still be turned off in Settings).
+  - **Cartoon bugs:** each invasive bug and native bug has its own cartoon, drawn to look like
+    the real bug (colors, spots, stripes, wings, and antennae). Pip is a cartoon western bumble bee.
+    In "Where's the Bug?", the other hiding bugs are cartoons too, so you have to find the right one.
+- **Done when:**
+  - [ ] Every cutscene shows the 3D classroom.
+  - [ ] A quiz needs the right answer before Next shows up, and the tap practice catches a bug.
+  - [ ] Read aloud is on for new and old players.
+  - [ ] Every bug in the game has its own cartoon.
+
 ## Game screen: new user flow (home, challenge page, camera)
 
 - **Status:** Building
