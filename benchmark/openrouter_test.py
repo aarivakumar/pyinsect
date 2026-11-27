@@ -93,7 +93,7 @@ def explain(error):
 def main():
     parser = argparse.ArgumentParser(description="Test an OpenRouter model on a folder of insect photos.")
     parser.add_argument("folder", help="folder of photos")
-    parser.add_argument("--model", default="google/gemma-4-31b-it:free", help="OpenRouter model that reads images")
+    parser.add_argument("--model", default="nvidia/nemotron-3.5-super-vl:free", help="OpenRouter model that reads images")
     parser.add_argument("--limit", type=int, help="only ask about this many new photos")
     parser.add_argument("--max-dollars", type=float, default=1.0, help="stop after spending about this much")
     parser.add_argument("--at-once", type=int, default=6, help="photos to ask about at the same time")

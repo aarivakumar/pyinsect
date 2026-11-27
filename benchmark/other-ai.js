@@ -3,7 +3,7 @@
 
 window.OtherAI = (() => {
 const OPENROUTER = "https://openrouter.ai/api/v1";
-const OPENROUTER_MODEL = "google/gemma-4-31b-it:free";   // ":free" models cost $0, but limit how often you can ask
+const OPENROUTER_MODEL = "nvidia/nemotron-3.5-super-vl:free";   // ":free" models cost $0, but limit how often you can ask
 const MAX_DOLLARS = 1;   // stop asking after about this much, each time the page is open
 const CLIP_MODEL = "Xenova/clip-vit-base-patch32";
 const TRANSFORMERS = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
