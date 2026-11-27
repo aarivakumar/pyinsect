@@ -93,7 +93,7 @@ def explain(error):
 def main():
     parser = argparse.ArgumentParser(description="Test an OpenRouter model on a folder of insect photos.")
     parser.add_argument("folder", help="folder of photos")
-    parser.add_argument("--model", default="mistralai/pixtral-large-2502", help="OpenRouter model that reads images")
+    parser.add_argument("--model", default="nvidia/nemotron-3.5-super-vl:free", help="OpenRouter model that reads images")
     parser.add_argument("--limit", type=int, help="only ask about this many new photos")
     parser.add_argument("--max-dollars", type=float, default=1.0, help="stop after spending about this much")
     parser.add_argument("--at-once", type=int, default=6, help="photos to ask about at the same time")
@@ -115,7 +115,7 @@ def main():
     if not todo:
         sys.exit(f"Nothing new to ask. Answers are in {output}")
 
-    print(f"{len(todo)} photos will be sent to OpenRouter ({args.model}). This may cost money.")
+    print(f"{len(todo)} photos will be sent to OpenRouter ({args.model}). Models ending in :free cost $0. Others cost money.")
     key = os.environ.get("OPENROUTER_API_KEY") or getpass.getpass("Grown-up's OpenRouter key: ").strip()
     if not key:
         sys.exit("No key, so nothing was sent.")
