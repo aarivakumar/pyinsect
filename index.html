@@ -113,6 +113,9 @@
 
     <footer class="home-foot">
       <button id="permsAgain" class="btn" type="button">⚙️ Change permissions</button>
+      <!-- Only shows when the site is run with training-rig/server.py (it answers api/ping) -->
+      <p id="rigLinks" hidden><a href="capture">📱 Capture training photos</a> · <a href="rig">🖥️ Training rig</a></p>
+      <script>fetch("api/ping").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j && j.ok) document.getElementById("rigLinks").hidden = false; }).catch(function () {});</script>
       <details class="credits">
         <summary>Photo credits</summary>
         <ul>
@@ -343,7 +346,7 @@
   <div id="gamePopupBox" class="game-popup-box"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.wasm.min.js"></script>
+<script src="assets/vendor/ort/ort.wasm.min.js"></script>
 <script src="assets/insect-finder.js?v=20261028a"></script>
 <script src="assets/reports.js?v=20261025a"></script>
 <script src="assets/species.js?v=20261028a"></script>

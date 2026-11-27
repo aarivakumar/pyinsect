@@ -1023,3 +1023,42 @@ To add one, ask your AI helper to help you plan a new feature. It will use
     names and `labels.csv` say which filter they got.
   - [ ] Adding the filters takes less than a second for 50 photos on a phone like a Samsung A42 5G.
   - [ ] The zoom, the lighting and the photo timing work the same as before.
+
+## Offline training rig (phone → computer)
+
+- **Status:** Building
+- **Asked by:** Team, 2026-11-24
+- **Who it's for:** Our team, when we collect insect photos for training the AI, out in the field or
+  anywhere without Wi-Fi or internet.
+- **Problem or need:** The photo-capture workflow (phone takes a photo, sends it to the computer, the
+  computer sorts it and saves it) needs the internet today. We want it to work with no internet.
+- **Why they have it:** Good insect photo spots (forests, parks) often have no signal. We don't want
+  to lose a find, and photos of training insects should never need to leave our own computer.
+- **Our idea:** A small Python program in `training-rig/` that runs only on the computer (no
+  installs, no internet, no outside files). The phone is plugged in by **USB cable**. With
+  `adb reverse` the phone opens `http://localhost:8000/capture` and talks to the computer through the cable.
+  - **Phone page:** a big **Take Photo** button, a name for the insect, and an upload. If the cable
+    comes out, photos wait on the phone and are sent when it's plugged in again.
+  - **Computer page (`/rig`):** a **Feature gallery** (photos for training) and a **Validation
+    gallery** (photos held back to test the AI), plus the **label / name** of the training item.
+    About 1 in 5 photos goes to Validation. You can move or delete a photo.
+  - **Same address as the site:** `localhost:8000` is the Pyinsect site, so the AI also runs offline
+    (its engine is saved in `assets/vendor/ort/`, not loaded from the internet).
+  - **"Database":** plain folders, `training-rig/data/<name>/feature/`, `.../validation/`, and a
+    `labels.csv`. Photos are never saved in git.
+- **Other ideas we talked about:**
+  - Same Wi-Fi or hotspot: easy, but it needs a network, and we chose USB.
+  - SQLite database: better for searching, but photos are harder to look at.
+  - Adding it to `hardware/`: that app is for the turntable, so we made a separate folder.
+- **User flow:**
+  1. On the computer: run `python3 training-rig/server.py`. Plug the phone in by USB.
+  2. On the phone: open `http://localhost:8000/capture`, type the insect's name, tap **Take Photo**.
+  3. The photo is sent through the cable and the phone says "Saved".
+  4. On the computer: open `http://localhost:8000/rig` (or the link on Home). The photo is in a gallery.
+  5. If the cable was out: the phone says "1 waiting", and sends it after plugging back in.
+- **Done when:**
+  - [ ] With Wi-Fi and internet off, a photo taken on the phone shows up in the computer's gallery.
+  - [ ] About 1 in 5 photos lands in Validation, and the rest in Feature.
+  - [ ] Unplug the cable, take a photo, plug back in, and the waiting photo is sent.
+  - [ ] `training-rig/data/<name>/labels.csv` lists each photo and its split.
+  - [ ] No photo or data is committed to git.

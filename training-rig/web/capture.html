@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Take Photo</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#f4f7fb;color:#1b2a4a;margin:0;padding:20px;text-align:center}
+h1{font-size:1.3rem}
+input[type=text]{width:100%;box-sizing:border-box;font-size:1.1rem;padding:12px;border:2px solid #c5d3ea;border-radius:12px}
+label.btn{display:block;margin:20px 0;padding:28px;font-size:1.6rem;font-weight:700;background:#dbe9ff;border:2px solid #9bbcf0;border-radius:18px}
+input[type=file]{display:none}
+button{font-size:1rem;padding:12px 18px;border-radius:10px;border:2px solid #9bbcf0;background:#fff}
+#msg{min-height:2em;font-size:1.1rem}
+.ok{color:#1d7a4f}.bad{color:#b3261e}
+</style></head><body>
+<h1>Capture an image</h1>
+<input type="text" id="label" placeholder="Insect name (e.g. Ladybug)" maxlength="40">
+<label class="btn" for="cam">📷 Take Photo</label>
+<input type="file" id="cam" accept="image/*" capture="environment">
+<div id="msg"></div>
+<button id="send" hidden>Send waiting photos</button>
+<script>
+const $ = id => document.getElementById(id);
+const labelEl = $('label'), msg = $('msg'), sendBtn = $('send');
+try { labelEl.value = localStorage.getItem('label') || ''; } catch (e) {}
+function say(t, cls) { msg.textContent = t; msg.className = cls || ''; }
+
+// Waiting photos live in IndexedDB, so they survive if the cable comes out.
+const db = new Promise((res, rej) => {
+  const r = indexedDB.open('rig', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('q', { autoIncrement: true });
+  r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+});
+const tx = async (mode, fn) => { const d = await db; return new Promise((res, rej) => {
+  const t = d.transaction('q', mode), q = fn(t.objectStore('q'));
+  t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }); };
+const queued = () => tx('readonly', s => s.getAll());
+const keys = () => tx('readonly', s => s.getAllKeys());
+
+async function shrink(file) {            // phone photos are huge; 1280 px is plenty
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+}
+async function upload(label, blob) {
+  const r = await fetch('/api/upload?label=' + encodeURIComponent(label), { method: 'POST', body: blob });
+  if (!r.ok) throw Object.assign(new Error((await r.json()).error), { server: true });
+}
+async function refresh() {
+  const n = (await keys()).length;
+  sendBtn.hidden = !n;
+  if (n) say(n + ' photo(s) waiting. Plug in the cable and tap Send.', 'bad');
+}
+async function flush() {
+  const ks = await keys(), items = await queued();
+  for (let i = 0; i < ks.length; i++) {
+    try { await upload(items[i].label, items[i].blob); await tx('readwrite', s => s.delete(ks[i])); }
+    catch (e) { if (!e.server) break; await tx('readwrite', s => s.delete(ks[i])); }
+  }
+  await refresh();
+  if (!(await keys()).length) say('All photos sent ✔', 'ok');
+}
+$('cam').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  const label = labelEl.value.trim();
+  if (!f) return;
+  if (!label) return say('Type the insect name first.', 'bad');
+  try { localStorage.setItem('label', label); } catch (x) {}
+  const blob = await shrink(f);
+  try { await upload(label, blob); say('Saved ✔', 'ok'); }
+  catch (err) {
+    if (err.server) return say(err.message, 'bad');
+    await tx('readwrite', s => s.add({ label, blob }));
+    await refresh();
+  }
+};
+sendBtn.onclick = flush;
+// Pick up the name typed on the computer, if the cable is connected.
+fetch('/api/ping').then(r => r.json()).then(j => { if (j.label && !labelEl.value) labelEl.value = j.label; }).catch(() => {});
+refresh();
+</script></body></html>
