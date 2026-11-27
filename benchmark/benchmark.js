@@ -204,11 +204,9 @@ function saveKey(key) {
     if (key) localStorage.setItem(KEY_NAME, key);
     else localStorage.removeItem(KEY_NAME);
   } catch (e) { console.warn("couldn't change the saved key:", e); }
-  showKeyButtons();
+  $("forget").hidden = !savedKey();
 }
-// Buttons that only make sense when a key is saved.
-function showKeyButtons() { $("forget").hidden = $("copyKey").hidden = !savedKey(); }
-showKeyButtons();
+$("forget").hidden = !savedKey();
 $("forget").onclick = () => { saveKey(null); $("chooseStatus").textContent = "Saved key forgotten."; };
 
 const showKeyForm = (show) => {
@@ -264,16 +262,6 @@ $("keyForm").onsubmit = async (event) => {
 
 // Settings: go back to the start screen to pick again.
 $("changeAi").onclick = () => { saveChoice(null); location.reload(); };
-// Copies the saved key without ever showing it on the page.
-$("copyKey").onclick = async () => {
-  try {
-    await navigator.clipboard.writeText(savedKey());
-    $("copyStatus").textContent = "Key copied. Only paste it somewhere private.";
-  } catch (e) {
-    console.error(e);
-    $("copyStatus").textContent = "Couldn't copy the key.";
-  }
-};
 
 /* ---------- tabs ---------- */
 function openTab(bench) {
