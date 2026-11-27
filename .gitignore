@@ -5,3 +5,7 @@ node_modules/
 
 # Training rig photos stay on our own computer (never in git)
 training-rig/data/
+
+# The AI engine for offline use: python3 training-rig/get_runtime.py downloads it
+assets/vendor/
+__pycache__/

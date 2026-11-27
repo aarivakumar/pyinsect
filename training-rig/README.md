@@ -12,18 +12,22 @@ ignored by git, so photos never go online.
 2. On the phone: Settings → About phone → tap **Build number** 7 times → Developer options → turn on **USB debugging**.
 3. Plug in the cable and tap **Allow** on the phone.
 
+## Get the AI engine (once, while you have internet)
+`python3 training-rig/get_runtime.py`. It saves the files in `assets/vendor/ort/` (not in git).
+The rig server then uses them, so the Pyinsect main page can run the AI with no internet.
+
 ## Every time
 1. `python3 training-rig/server.py` (Windows: `python`). It runs `adb reverse` for you.
 2. Computer: open http://localhost:8000 (the Pyinsect site). The training rig is at http://localhost:8000/rig.
 3. Phone (Chrome): open http://localhost:8000/capture, type the insect's name, tap **Take Photo**.
 4. If the cable falls out, photos wait on the phone. Plug in and tap **Send waiting photos**.
 
-No adb? Turn on **USB tethering** on the phone, run `python3 server.py --lan`, and open
+No adb? Turn on **USB tethering** on the phone, run `python3 training-rig/server.py --lan`, and open
 `http://<computer's address>:8000/capture` on the phone. (`--lan` lets anyone on that network open the page, so use it only on your own cable or hotspot.)
 
 **Link not working?** The server must be running (the terminal says "Computer page"). On the phone,
 `localhost` only works after `adb reverse` ran (the terminal says "USB phone connected").
 
 ## Test it
-`python3 server.py`, then in another terminal:
+`python3 training-rig/server.py`, then in another terminal:
 `curl -X POST --data-binary @photo.jpg "http://localhost:8000/api/upload?label=Ladybug"`

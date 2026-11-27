@@ -1043,7 +1043,8 @@ To add one, ask your AI helper to help you plan a new feature. It will use
     gallery** (photos held back to test the AI), plus the **label / name** of the training item.
     About 1 in 5 photos goes to Validation. You can move or delete a photo.
   - **Same address as the site:** `localhost:8000` is the Pyinsect site, so the AI also runs offline
-    (its engine is saved in `assets/vendor/ort/`, not loaded from the internet).
+    (`get_runtime.py` downloads its engine into `assets/vendor/ort/` once, and the rig server uses that copy.
+    The live website still loads it from the internet).
   - **"Database":** plain folders, `training-rig/data/<name>/feature/`, `.../validation/`, and a
     `labels.csv`. Photos are never saved in git.
 - **Other ideas we talked about:**
