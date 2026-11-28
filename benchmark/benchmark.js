@@ -216,6 +216,7 @@ async function showModelList() {
     $("model").replaceChildren(...list.map((m) => option(m.id, m.name)));
     if (!listed) $("model").prepend(option(other.model, `${other.model} (not free or gone)`));
     $("model").value = other.model;
+    $("priceNote").textContent = priceNote();
     $("modelStatus").textContent = listed ? "Only free models that read pictures. They have limits."
       : "The model in use isn't on the free list anymore. Pick another one.";
   } catch (e) {
@@ -326,7 +327,7 @@ function showGuesses(results) {
     }));
     $(`speed${id}`).textContent = result ? `${(result.ms / 1000).toFixed(1)} s` : "–";
   }
-  $("costOther").textContent = results?.theirs ? (other.estimate ? `about ${money(results.theirs.cost)} if paid` : money(results.theirs.cost)) : "–";
+  $("costOther").textContent = results?.theirs ? (other.estimate && results.theirs.cost != null ? `about ${money(results.theirs.cost)} if paid` : money(results.theirs.cost)) : "–";
 }
 
 let current = null;   // the photo on screen
@@ -385,14 +386,14 @@ function truthFor(file) {
 
 // One point per photo: totals so far. Pyinsect's cost stays 0, because it runs on this device.
 let totals = [];
-const money = (v) => (v === 0 ? "$0" : `$${v.toFixed(v < 0.1 ? 4 : 2)}`);
+const money = (v) => (v == null ? "–" : v === 0 ? "$0" : `$${v.toFixed(v < 0.1 ? 4 : 2)}`);
 const svg = (tag, attrs, text) => {
   const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
   if (text != null) e.textContent = text;
   return e;
 };
-// One graph: how many each AI has got right so far, as a percent, photo by photo.
+// The line graph: how many each AI has got right so far, as a percent, photo by photo.
 function drawGraphs() {
   const W = 360, H = 250, left = 46, right = 52, top = 10, bottom = 40;
   const count = totals.length, most = Math.max(2, count);
@@ -427,9 +428,68 @@ function drawGraphs() {
   $("graph").replaceChildren(graph);
 }
 
+// Speed and cost are one number for each AI, so they are bars. Each pair has its own scale.
+const EACH = 10000;   // cost is shown for this many photos
+const perPhoto = (ai) => totals[totals.length - 1][ai].seconds / totals.length;
+const forEach10K = (ai) => {
+  const { cost } = totals[totals.length - 1][ai];
+  return cost == null ? null : (cost / totals.length) * EACH;
+};
+const dollars = (v) => (v == null ? "–" : v === 0 ? "$0" : v < 0.01 ? "under $0.01"
+  : `$${v.toLocaleString("en-US", { minimumFractionDigits: v < 100 ? 2 : 0, maximumFractionDigits: v < 100 ? 2 : 0 })}`);
+const seconds = (v) => `${v.toFixed(v < 0.995 ? 2 : 1)} s`;
+function drawBars(id, valueOf, text) {
+  const values = AIS.map(([ai]) => (totals.length ? valueOf(ai) : null));
+  const most = Math.max(0, ...values);
+  $(id).replaceChildren(...AIS.map(([ai], i) => {
+    const row = el("div", "bar-row"), track = el("div", "bar-track"), fill = el("div", `bar-fill ${ai}`);
+    fill.style.width = most && values[i] ? `${Math.max(1, (100 * values[i]) / most)}%` : "0";
+    track.append(fill);
+    row.append(el("span", null, ai === "other" ? other.name : "Pyinsect"), track,
+      el("b", null, values[i] == null ? "–" : text(values[i])));
+    return row;
+  }));
+}
+
+/* ---------- the summary sentence after a run ---------- */
+// "10x faster", "1.2x less accurate" or "about as fast as". Bigger numbers mean better here.
+function compare(mine, theirs, more, less, same) {
+  const times = Math.max(mine, theirs) / Math.min(mine, theirs);
+  if (!(times >= 1.05)) return `about as ${same} as`;   // also when both are 0
+  const word = mine > theirs ? more : less;
+  if (!Number.isFinite(times)) return `${word} than`;
+  return `${times.toFixed(times < 9.95 ? 1 : 0).replace(/\.0$/, "")}x ${word} than`;
+}
+function summaryText() {
+  const count = totals.length, last = totals[count - 1], name = other.name;
+  const percent = (ai) => `${Math.round((100 * last[ai].right) / count)}%`;
+  const speed = compare(1 / last.pyinsect.seconds, 1 / last.other.seconds, "faster", "slower", "fast");
+  const accuracy = compare(last.pyinsect.right, last.other.right, "more accurate", "less accurate", "accurate");
+  const saved = forEach10K("other");
+  const cost = saved == null ? `The cost of ${name} isn't known, so we can't compare cost.`
+    : saved === 0 ? "Both cost $0 in AI fees."
+    : `It ${other.estimate ? "would save" : "saves"} ${saved < 0.01 ? "under $0.01" : `about ${dollars(saved)}`} in AI fees for every 10,000 images${other.estimate ? `, if ${name} were paid` : ""}.`;
+  const first = speed.endsWith(" than") && accuracy.endsWith(" than") ? speed.slice(0, -5) : `${speed} ${name}`;
+  return `Pyinsect is ${first} and ${accuracy} ${name} (${percent("pyinsect")} vs. ${percent("other")} right). ${cost}`
+    + ` Tested on ${count} photo${count === 1 ? "" : "s"}${count < 30 ? ", which is too few to prove much" : ""}.`;
+}
+
+function priceNote() {
+  const p = other.price?.();
+  const perMillion = (v) => `$${Number((v * 1e6).toFixed(3))}`;
+  return !other.estimate ? "" : !p ? "The price list hasn't loaded, so the cost may show as –."
+    : `Price used now: ${perMillion(p.in)} per million tokens in and ${perMillion(p.out)} out, from ${p.from}`
+      + (p.standIn ? " (a similar model, because this one has no paid version)." : " (the paid version of this model).");
+}
+
 const short = (n) => (n < 1000 ? String(n) : `${Math.round(n / 1000)}K`);
 function drawBoxes() {
   drawGraphs();
+  drawBars("speedBars", perPhoto, seconds);
+  drawBars("costBars", forEach10K, dollars);
+  $("summary").hidden = running || !totals.length;
+  $("summary").textContent = $("summary").hidden ? "" : summaryText();
+  $("priceNote").textContent = priceNote();
   const last = totals[totals.length - 1];
   const fastest = last ? Math.min(last.pyinsect.seconds, last.other.seconds) : 0;
   for (const [ai, id] of AIS) {
@@ -438,7 +498,8 @@ function drawBoxes() {
       ["Accuracy", mine && `${Math.round((100 * mine.right) / totals.length)}%`, mine && `${mine.right} of ${totals.length} right`],
       ["Speed", mine && `${Math.round((100 * fastest) / mine.seconds) || 0}%`],
       ["Cost", mine && money(mine.cost), mine && ai === "other" && other.estimate ? "if paid" : null],
-      ["Tokens", mine && short(mine.tokens)],
+      // Only OpenRouter's chatbot AIs are counted in tokens. Pyinsect and CLIP have no token price.
+      ["Tokens", mine && (ai === "other" && other.estimate ? short(mine.tokens) : "–"), mine && !(ai === "other" && other.estimate) ? "no token fees" : null],
     ];
     $(`boxes${id}`).replaceChildren(...boxes.map(([name, value, note]) => {
       const box = el("div", "box");
@@ -486,7 +547,7 @@ async function runBenchmark(files) {
         const add = (was, right, seconds, cost, tokens) => ({
           right: (was ? was.right : 0) + (right ? 1 : 0),
           seconds: (was ? was.seconds : 0) + seconds,
-          cost: (was ? was.cost : 0) + cost,
+          cost: cost == null || (was && was.cost == null) ? null : (was ? was.cost : 0) + cost,
           tokens: (was ? was.tokens : 0) + tokens,
         });
         const point = {
@@ -508,6 +569,7 @@ async function runBenchmark(files) {
     status(NOT_LOADED);
   } finally {
     running = false;
+    drawBoxes();   // shows the summary
     setBusy(-1);
     $("stop").hidden = true;
     for (const id of ["pickFolder", "pickMany"]) $(id).disabled = false;
