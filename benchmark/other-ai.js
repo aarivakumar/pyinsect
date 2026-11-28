@@ -92,7 +92,34 @@ function readAnswer(text, species) {
   } catch { return []; }
 }
 
-function openRouter(species, key) {
+// Only free models: the ID ends in ":free" and every listed price is 0.
+const isFree = (m) => m.id.endsWith(":free") && Object.values(m.pricing || {}).every((p) => Number(p) === 0);
+let freeList = null, listedAt = 0;
+// The free models that can read pictures and answer in words, from OpenRouter's public list (no key needed).
+async function freeModels() {
+  if (freeList && Date.now() - listedAt < 600000) return freeList;   // ask again after 10 minutes
+  const res = await fetch(`${OPENROUTER}/models`, { signal: AbortSignal.timeout(20000) });
+  if (!res.ok) throw new Error(`OpenRouter said ${res.status}`);
+  freeList = (await res.json()).data
+    .filter((m) => isFree(m) && m.architecture?.input_modalities?.includes("image")
+      && m.architecture?.output_modalities?.includes("text"))
+    .map((m) => ({ id: m.id, name: m.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  listedAt = Date.now();
+  return freeList;
+}
+
+// Checked before every photo, so a model that costs money is never asked.
+async function mustBeFree(model) {
+  if (!model.endsWith(":free")) throw new Error("not a free model");
+  let list;
+  try { list = await freeModels(); }
+  catch (e) { console.warn("couldn't load the model list:", e); return; }   // ":free" IDs are still free
+  if (!list.some((m) => m.id === model)) throw new Error("this model isn't free anymore");
+}
+
+function openRouter(species, key, startModel) {
+  let model = startModel?.endsWith(":free") ? startModel : OPENROUTER_MODEL;
   let spent = 0;
   const listing = species.map((s) => `${s} = ${commonName(s)}`).join("\n");
   const prompt = "Name the insect (or the insect damage) in this photo. Choose only from this list of ids:\n"
@@ -100,18 +127,22 @@ function openRouter(species, key) {
     + '{"top3": [{"id": "<id from the list>", "confidence": <0 to 100>}]}';
   return {
     name: "OpenRouter",
-    kind: `(generalist) ${OPENROUTER_MODEL}`,
+    get kind() { return `(generalist) ${model}`; },
+    get model() { return model; },
+    setModel(id) { if (id.endsWith(":free")) model = id; },
+    freeModels,
     estimate: true,   // its cost is an estimate, not money spent
     async getReady() {},
     async ask(file) {
       if (spent >= MAX_DOLLARS) throw new Error("spending limit");
+      await mustBeFree(model);
       const image = await smallJpeg(file);
       const start = performance.now();
       const res = await fetch(`${OPENROUTER}/responses`, {
         method: "POST",
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
         signal: AbortSignal.timeout(180000),
-        body: JSON.stringify({ model: OPENROUTER_MODEL, input: [{ role: "user", content: [
+        body: JSON.stringify({ model, input: [{ role: "user", content: [
           { type: "input_text", text: prompt },
           { type: "input_image", image_url: image, detail: "auto" },
         ] }] }),
