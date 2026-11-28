@@ -29,7 +29,7 @@
 .choose { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
 .choose .btn { justify-content: center; }
 .truth { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
-.truth input { min-height: 44px; padding: 8px 12px; font: 16px var(--body); color: var(--ink); background: var(--glass-strong); border: 1px solid var(--glass-edge); border-radius: 12px; }
+.truth input, .truth select { min-height: 44px; padding: 8px 12px; font: 16px var(--body); color: var(--ink); background: var(--glass-strong); border: 1px solid var(--glass-edge); border-radius: 12px; }
 #stop { align-self: center; }
 /* Graph colors: green for Pyinsect, grey for the other AI */
 :root { --pyinsect: #1c9c6c; --other: #6b7280; }
