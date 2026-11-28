@@ -351,30 +351,39 @@ const svg = (tag, attrs, text) => {
   if (text != null) e.textContent = text;
   return e;
 };
+// One graph: how many each AI has got right so far, as a percent, photo by photo.
 function drawGraphs() {
-  const last = totals[totals.length - 1];
-  // On phones the two graphs are side by side, so each one is narrow.
-  const W = 240, H = 210, left = 14, right = 8, top = 8, bottom = 38;
-  const most = Math.max(10, totals.length);
-  const x = (n) => left + (n / most) * (W - left - right);
-  // Each kind of line has one scale for both graphs.
-  const biggest = (key) => (last ? Math.max(last.pyinsect[key], last.other[key]) : 0) || 1;
-  const scale = { right: Math.max(1, totals.length), seconds: biggest("seconds"), cost: biggest("cost") };
-  const y = (share) => top + (1 - share) * (H - top - bottom);
-  for (const [ai, id] of AIS) {
-    const graph = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
-    graph.setAttribute("aria-label", `${ai === "other" ? other.name : "Pyinsect"}: accuracy, speed and cost as photos are added`);
-    graph.append(svg("path", { class: "axis", d: `M${left} ${top}V${y(0)}H${W - right}` }));
-    for (const n of [0, Math.round(most / 2), most]) graph.append(svg("text", { x: x(n), y: y(0) + 16, "text-anchor": "middle" }, n));
-    graph.append(svg("text", { x: (left + W - right) / 2, y: H - 4, "text-anchor": "middle" }, "Number of photos"));
-    {
-      for (const [kind, key] of [["accuracy", "right"], ["speed", "seconds"], ["cost", "cost"]]) {
-        const points = [[0, 0], ...totals.map((t, i) => [i + 1, t[ai][key] / scale[key]])];
-        graph.append(svg("polyline", { class: `line ${kind}`, points: points.map(([n, share]) => `${x(n)},${y(share)}`).join(" ") }));
-      }
-    }
-    $(`graph${id}`).replaceChildren(graph);
+  const W = 360, H = 250, left = 46, right = 52, top = 10, bottom = 40;
+  const count = totals.length, most = Math.max(2, count);
+  const lines = AIS.map(([ai]) => ({ ai, values: totals.map((t, i) => (100 * t[ai].right) / (i + 1)) }));
+  // Zoom in on the part with lines, but always show at least 40 to 100.
+  const low = Math.min(60, ...lines.flatMap((l) => l.values));
+  const from = Math.max(0, Math.floor((low - 1) / 20) * 20);
+  const x = (n) => left + ((n - 1) / (most - 1)) * (W - left - right);
+  const y = (v) => top + ((100 - v) / (100 - from)) * (H - top - bottom);
+  const graph = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+  graph.setAttribute("aria-label", "Accuracy of both AIs as photos are added");
+  for (let v = from; v <= 100; v += from < 40 ? 20 : 10) {
+    graph.append(svg("path", { class: "grid", d: `M${left} ${y(v)}H${W - right}` }));
+    graph.append(svg("text", { x: left - 6, y: y(v) + 4, "text-anchor": "end" }, `${v}%`));
   }
+  graph.append(svg("path", { class: "axis", d: `M${left} ${top}V${y(from)}H${W - right}` }));
+  const step = Math.ceil(most / 8);
+  for (let n = 1; n <= most; n += step) graph.append(svg("text", { x: x(n), y: y(from) + 15, "text-anchor": "middle" }, n));
+  graph.append(svg("text", { class: "title", x: (left + W - right) / 2, y: H - 4, "text-anchor": "middle" }, "Number of photos"));
+  graph.append(svg("text", { class: "title", transform: `translate(11 ${y((100 + from) / 2)}) rotate(-90)`, "text-anchor": "middle" }, "Accuracy"));
+  for (const { ai, values } of lines) {
+    graph.append(svg("polyline", { class: `line ${ai}`, points: values.map((v, i) => `${x(i + 1)},${y(v)}`).join(" ") }));
+    values.forEach((v, i) => graph.append(svg("circle", { class: `dot ${ai}`, cx: x(i + 1), cy: y(v), r: count > 25 ? 2 : 4 })));
+  }
+  // Number labels at the end of each line. If the two are close, push them apart.
+  if (count) {
+    const spots = lines.map((l) => ({ ai: l.ai, v: l.values[count - 1], at: y(l.values[count - 1]) + 5 })).sort((a, b) => a.at - b.at);
+    const gap = spots[1].at - spots[0].at;
+    if (gap < 15) { spots[0].at -= (15 - gap) / 2; spots[1].at += (15 - gap) / 2; }
+    for (const s of spots) graph.append(svg("text", { class: `end ${s.ai}`, x: x(count) + 8, y: s.at }, `${Math.round(s.v)}%`));
+  }
+  $("graph").replaceChildren(graph);
 }
 
 const short = (n) => (n < 1000 ? String(n) : `${Math.round(n / 1000)}K`);
