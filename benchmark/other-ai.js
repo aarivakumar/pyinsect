@@ -4,9 +4,9 @@
 window.OtherAI = (() => {
 const OPENROUTER = "https://openrouter.ai/api/v1";
 const OPENROUTER_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free";   // ":free" models cost $0, but limit how often you can ask
-// The free model costs $0. To show what asking could cost, we estimate with the prices (dollars per
-// million tokens) of the paid, text-only NVIDIA Nemotron 3 Nano 30B A3B.
-const PRICE_IN = 0.06, PRICE_OUT = 0.24;
+// A free model costs $0. To show what asking could cost, we use the price of its paid version (the same
+// ID without ":free"). Some have no paid version, so then we use this similar model's price instead.
+const STAND_IN_MODEL = "nvidia/nemotron-3-nano-30b-a3b";
 const MAX_DOLLARS = 1;   // stop asking after about this much, each time the page is open
 const CLIP_MODEL = "Xenova/clip-vit-base-patch32";
 const TRANSFORMERS = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
@@ -94,19 +94,32 @@ function readAnswer(text, species) {
 
 // Only free models: the ID ends in ":free" and every listed price is 0.
 const isFree = (m) => m.id.endsWith(":free") && Object.values(m.pricing || {}).every((p) => Number(p) === 0);
-let freeList = null, listedAt = 0;
+let freeList = null, listedAt = 0, prices = new Map();
 // The free models that can read pictures and answer in words, from OpenRouter's public list (no key needed).
 async function freeModels() {
   if (freeList && Date.now() - listedAt < 600000) return freeList;   // ask again after 10 minutes
   const res = await fetch(`${OPENROUTER}/models`, { signal: AbortSignal.timeout(20000) });
   if (!res.ok) throw new Error(`OpenRouter said ${res.status}`);
-  freeList = (await res.json()).data
+  const all = (await res.json()).data;
+  // Every model's price, in dollars per token.
+  prices = new Map(all.map((m) => [m.id, { in: Number(m.pricing?.prompt), out: Number(m.pricing?.completion) }]));
+  freeList = all
     .filter((m) => isFree(m) && m.architecture?.input_modalities?.includes("image")
       && m.architecture?.output_modalities?.includes("text"))
     .map((m) => ({ id: m.id, name: m.name }))
     .sort((a, b) => a.name.localeCompare(b.name));
   listedAt = Date.now();
   return freeList;
+}
+
+// What this model would cost if paid, from OpenRouter's list. null if the list has no price.
+function priceFor(model) {
+  const paid = model.replace(/:free$/, "");
+  for (const [from, standIn] of [[paid, false], [STAND_IN_MODEL, true]]) {
+    const p = prices.get(from);
+    if (p && p.in >= 0 && p.out >= 0 && p.in + p.out > 0) return { ...p, from, standIn };
+  }
+  return null;
 }
 
 // Checked before every photo, so a model that costs money is never asked.
@@ -131,6 +144,7 @@ function openRouter(species, key, startModel) {
     get model() { return model; },
     setModel(id) { if (id.endsWith(":free")) model = id; },
     freeModels,
+    price: () => priceFor(model),
     estimate: true,   // its cost is an estimate, not money spent
     async getReady() {},
     async ask(file) {
@@ -151,8 +165,9 @@ function openRouter(species, key, startModel) {
       const reply = await res.json();
       const ms = performance.now() - start;
       spent += Number(reply.usage?.cost) || 0;   // real money, for the spending limit
-      const cost = ((Number(reply.usage?.input_tokens) || 0) * PRICE_IN
-        + (Number(reply.usage?.output_tokens) || 0) * PRICE_OUT) / 1e6;
+      const price = priceFor(model);
+      const cost = price && (Number(reply.usage?.input_tokens) || 0) * price.in
+        + (Number(reply.usage?.output_tokens) || 0) * price.out;   // null if we don't know the price
       const text = (reply.output || []).filter((item) => item.type === "message")
         .flatMap((item) => item.content || []).filter((part) => part.type === "output_text")
         .map((part) => part.text).join("");

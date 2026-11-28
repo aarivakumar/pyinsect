@@ -49,6 +49,13 @@
 .graph .dot.pyinsect, .graph text.pyinsect { fill: var(--pyinsect); }
 .graph .dot.other, .graph text.other { fill: var(--other); }
 .graph text.end { font-weight: 700; font-size: 14px; }
+/* Speed and cost bars */
+.bar-row { display: grid; grid-template-columns: 5.5em minmax(0, 1fr) 6.5em; align-items: center; gap: 8px; min-height: 28px; font-size: 13px; }
+.bar-row b { text-align: right; }
+.bar-track { border-left: 1px solid var(--muted); }
+.bar-fill { height: 16px; border-radius: 0 4px 4px 0; background: var(--pyinsect); }
+.bar-fill.other { background: var(--other); }
+.summary { margin: 0; padding: 14px; text-align: center; font-weight: 600; border: 2px solid var(--accent); }
 summary { cursor: pointer; min-height: 28px; font-family: var(--display); font-size: 19px; }
 details[open] > summary { margin-bottom: 12px; }
 .pair, .results { display: flex; flex-direction: column; gap: 16px; }
