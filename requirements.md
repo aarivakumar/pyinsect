@@ -1023,3 +1023,27 @@ To add one, ask your AI helper to help you plan a new feature. It will use
     names and `labels.csv` say which filter they got.
   - [ ] Adding the filters takes less than a second for 50 photos on a phone like a Samsung A42 5G.
   - [ ] The zoom, the lighting and the photo timing work the same as before.
+
+## Pyinsect Benchmark: pick a free model
+
+- **Status:** Building
+- **Asked by:** Aariv, 2026-11-27
+- **Who it's for:** Aariv and our team.
+- **Problem or need:** Switch between free AI models that read pictures (VLMs).
+- **Why they have it:** One model may stop working or get too busy.
+- **Our idea:** A **Model** list in **⚙️ Settings**, separate from **Change AI**, shown for OpenRouter. The list
+  comes from OpenRouter and only has models whose ID ends in `:free` with a price of $0, so no money or credits
+  are used. Free models still have daily limits.
+- **Other ideas we talked about:**
+  - Typing the model list into the code: it would go out of date.
+- **User flow:**
+  1. Pick **OpenRouter** and start.
+  2. If a model stops working or is too busy, a message shows.
+  3. Open **⚙️ Settings** and pick another model.
+  4. The model name changes and the old results are cleared.
+  5. Try the photo again. The next visit remembers the pick.
+  - If the list can't load, the page keeps the same model and says so.
+- **Done when:**
+  - [ ] Settings shows a list of free models that read pictures.
+  - [ ] Picking one changes the model name, and the next photo goes to that model.
+  - [ ] No model that costs money can appear or be used.
