@@ -29,28 +29,29 @@
 .choose { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
 .choose .btn { justify-content: center; }
 .truth { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
-.truth input { min-height: 44px; padding: 8px 12px; font: 16px var(--body); color: var(--ink); background: var(--glass-strong); border: 1px solid var(--glass-edge); border-radius: 12px; }
+.truth input, .truth select { min-height: 44px; padding: 8px 12px; font: 16px var(--body); color: var(--ink); background: var(--glass-strong); border: 1px solid var(--glass-edge); border-radius: 12px; }
 #stop { align-self: center; }
-/* Graph colors, checked for color blindness. The line styles differ too. */
-:root { --accuracy: #1e7a45; --speed: #3b6fd8; --cost: #d9480f; }
-@media (prefers-color-scheme: dark) { :root { --accuracy: #3a9d63; --speed: #5a8fe8; --cost: #e8702a; } }
-.legend { list-style: none; margin: 0; padding: 0; display: flex; justify-content: center; gap: 16px; font-size: 13px; }
-.legend li { display: flex; align-items: center; gap: 6px; }
-.key { width: 18px; border-top: 3px solid var(--accuracy); }
-.key.speed { border-top: 3px dashed var(--speed); }
-.key.cost { border-top: 3px dotted var(--cost); }
+/* Graph colors: green for Pyinsect, grey for the other AI */
+:root { --pyinsect: #1c9c6c; --other: #6b7280; }
+@media (prefers-color-scheme: dark) { :root { --pyinsect: #34c38f; --other: #a3abb8; } }
+.legend { list-style: none; width: fit-content; margin: 8px auto 0; padding: 8px 14px; font-size: 13px; font-weight: 600; background: var(--glass-strong); border: 1px solid var(--glass-edge); border-radius: 10px; box-shadow: 0 2px 6px rgba(0, 0, 0, .15); }
+.legend li { display: flex; align-items: center; gap: 8px; }
+.key { width: 24px; border-top: 3px solid var(--pyinsect); }
+.key.other { border-top-color: var(--other); }
 .graph svg { display: block; width: 100%; height: auto; }
 .graph text { font: 11px var(--body); fill: var(--muted); }
+.graph .title { font-weight: 600; fill: var(--ink); }
 .graph .axis { fill: none; stroke: var(--muted); stroke-width: 1; opacity: .6; }
-.graph .line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-.graph .accuracy { stroke: var(--accuracy); }
-.graph .speed { stroke: var(--speed); stroke-dasharray: 7 5; }
-.graph .cost { stroke: var(--cost); stroke-width: 4; stroke-dasharray: 1 7; }
-.graph { margin-top: 10px; }
+.graph .grid { fill: none; stroke: var(--line); stroke-width: 2; }
+.graph .line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .2)); }
+.graph .line.pyinsect { stroke: var(--pyinsect); }
+.graph .line.other { stroke: var(--other); }
+.graph .dot.pyinsect, .graph text.pyinsect { fill: var(--pyinsect); }
+.graph .dot.other, .graph text.other { fill: var(--other); }
+.graph text.end { font-weight: 700; font-size: 14px; }
 summary { cursor: pointer; min-height: 28px; font-family: var(--display); font-size: 19px; }
 details[open] > summary { margin-bottom: 12px; }
 .pair, .results { display: flex; flex-direction: column; gap: 16px; }
-.graph + .boxes { margin-top: 8px; }
 .box small { font-size: 12px; color: var(--muted); }
 /* Phones: fit both AIs on one screen */
 @media (max-width: 600px) {
@@ -70,18 +71,16 @@ details[open] > summary { margin-bottom: 12px; }
   #app .one h3 { margin-bottom: 4px; font-size: 15px; }
   .truth { gap: 2px; font-size: 12px; }
   .truth input { min-height: 38px; padding: 4px 12px; }
-  .legend { font-size: 12px; }
+  .legend { font-size: 12px; margin-top: 4px; padding: 4px 10px; }
   .box { min-height: 0; gap: 0; padding: 4px 2px; }
   .box span { font-size: 12px; }
   .box b { font-size: clamp(16px, 5.2vw, 22px); }
-  .graph { margin-top: 0; }
   /* Benchmark: the two AIs side by side, boxes in a 2 by 2 square under each graph */
   .results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   #app .results .panel.one { padding: 8px 6px; }
   .results h3 { min-height: 56px; }
   .results h3 small { display: block; line-height: 1.25; }
   .results .boxes { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-top: 4px; }
-  .results .graph text { font-size: 15px; }
   /* less space everywhere */
   #app .picture img { max-height: 24vh; }
   #app details.panel { padding: 8px 12px; }

@@ -195,7 +195,46 @@ function startWith(ai) {
   $("app").hidden = false;
   showGuesses(null);
   drawBoxes();
+  showModelList();
 }
+
+/* ---------- Settings: pick the OpenRouter model ---------- */
+const MODEL_NAME = "pyinsect-benchmark-model";
+const savedModel = () => { try { return localStorage.getItem(MODEL_NAME); } catch { return null; } };
+let busy = 0;   // photos being checked now. The model can't change while one is.
+function setBusy(change) { busy += change; $("model").disabled = busy > 0; }
+
+async function showModelList() {
+  $("modelRow").hidden = !other.setModel;   // only OpenRouter has models to pick
+  if (!other.setModel) return;
+  const option = (id, name) => { const o = el("option", null, name); o.value = id; return o; };
+  $("model").replaceChildren(option(other.model, other.model));
+  $("modelStatus").textContent = "Loading the free models…";
+  try {
+    const list = await other.freeModels();
+    const listed = list.some((m) => m.id === other.model);
+    $("model").replaceChildren(...list.map((m) => option(m.id, m.name)));
+    if (!listed) $("model").prepend(option(other.model, `${other.model} (not free or gone)`));
+    $("model").value = other.model;
+    $("modelStatus").textContent = listed ? "Only free models that read pictures. They have limits."
+      : "The model in use isn't on the free list anymore. Pick another one.";
+  } catch (e) {
+    console.error(e);
+    $("modelStatus").textContent = "Couldn't load the list. Still using the same model.";
+  }
+}
+$("model").onchange = () => {
+  other.setModel($("model").value);
+  try { localStorage.setItem(MODEL_NAME, other.model); } catch (e) { console.warn("couldn't save the model:", e); }
+  for (const e of document.querySelectorAll(".otherKind")) e.textContent = other.kind;
+  totals = [];   // don't mix two models' scores
+  showGuesses(null);
+  drawBoxes();
+  $("status").textContent = "Model changed. Select your photo again.";
+  $("benchStatus").textContent = "Model changed. Pick your photos again.";
+  $("modelStatus").textContent = "Model changed. The old results were cleared.";
+};
+
 // The key is saved in this browser only, and only if the grown-up asked. Storage can be blocked, so try.
 const KEY_NAME = "pyinsect-openrouter-key";
 const savedKey = () => { try { return localStorage.getItem(KEY_NAME); } catch { return null; } };
@@ -204,11 +243,9 @@ function saveKey(key) {
     if (key) localStorage.setItem(KEY_NAME, key);
     else localStorage.removeItem(KEY_NAME);
   } catch (e) { console.warn("couldn't change the saved key:", e); }
-  showKeyButtons();
+  $("forget").hidden = !savedKey();
 }
-// Buttons that only make sense when a key is saved.
-function showKeyButtons() { $("forget").hidden = $("copyKey").hidden = !savedKey(); }
-showKeyButtons();
+$("forget").hidden = !savedKey();
 $("forget").onclick = () => { saveKey(null); $("chooseStatus").textContent = "Saved key forgotten."; };
 
 const showKeyForm = (show) => {
@@ -227,7 +264,7 @@ $("useRouter").onclick = async () => {
   for (const b of buttons) b.disabled = true;
   $("chooseStatus").textContent = "Checking the saved key…";
   try {
-    if (await keyWorks(key)) startWith(openRouter(SPECIES, key));
+    if (await keyWorks(key)) startWith(openRouter(SPECIES, key, savedModel()));
     else {
       saveKey(null);
       showKeyForm(true);
@@ -252,7 +289,7 @@ $("keyForm").onsubmit = async (event) => {
     if (await keyWorks(key)) {
       if ($("remember").checked) saveKey(key);
       showKeyForm(false);
-      startWith(openRouter(SPECIES, key));
+      startWith(openRouter(SPECIES, key, savedModel()));
     } else say("That key didn't work. Try again.");
   } catch (e) {
     console.error(e);
@@ -264,16 +301,6 @@ $("keyForm").onsubmit = async (event) => {
 
 // Settings: go back to the start screen to pick again.
 $("changeAi").onclick = () => { saveChoice(null); location.reload(); };
-// Copies the saved key without ever showing it on the page.
-$("copyKey").onclick = async () => {
-  try {
-    await navigator.clipboard.writeText(savedKey());
-    $("copyStatus").textContent = "Key copied. Only paste it somewhere private.";
-  } catch (e) {
-    console.error(e);
-    $("copyStatus").textContent = "Couldn't copy the key.";
-  }
-};
 
 /* ---------- tabs ---------- */
 function openTab(bench) {
@@ -299,7 +326,7 @@ function showGuesses(results) {
     }));
     $(`speed${id}`).textContent = result ? `${(result.ms / 1000).toFixed(1)} s` : "–";
   }
-  $("costOther").textContent = results?.theirs ? money(results.theirs.cost) : "–";
+  $("costOther").textContent = results?.theirs ? (other.estimate ? `about ${money(results.theirs.cost)} if paid` : money(results.theirs.cost)) : "–";
 }
 
 let current = null;   // the photo on screen
@@ -323,13 +350,15 @@ async function tryPhoto(file) {
   try {
     await other.getReady(status);
   } catch (e) { console.error(e); status(`${other.name} couldn't be loaded. Check the internet and try again.`); return; }
+  setBusy(1);
   try {
     status("Looking…");
     const results = await check(file);
     if (current !== file) return;   // another photo was picked
     showGuesses(results);
-    status(results.theirs ? "Done." : `${other.name} couldn't answer. ${other.overLimit?.() ? "The spending limit is used up." : "Try again."}`);
+    status(results.theirs ? "Done." : `${other.name} couldn't answer. ${other.overLimit?.() ? "The spending limit is used up." : other.setModel ? "Try again, or pick another model in Settings." : "Try again."}`);
   } catch (e) { console.error(e); status("Couldn't check this photo. Try a JPG or PNG picture."); }
+  finally { setBusy(-1); }
 }
 $("pick").onclick = () => $("file").click();
 $("file").onchange = () => {
@@ -363,30 +392,39 @@ const svg = (tag, attrs, text) => {
   if (text != null) e.textContent = text;
   return e;
 };
+// One graph: how many each AI has got right so far, as a percent, photo by photo.
 function drawGraphs() {
-  const last = totals[totals.length - 1];
-  // On phones the two graphs are side by side, so each one is narrow.
-  const W = 240, H = 210, left = 14, right = 8, top = 8, bottom = 38;
-  const most = Math.max(10, totals.length);
-  const x = (n) => left + (n / most) * (W - left - right);
-  // Each kind of line has one scale for both graphs.
-  const biggest = (key) => (last ? Math.max(last.pyinsect[key], last.other[key]) : 0) || 1;
-  const scale = { right: Math.max(1, totals.length), seconds: biggest("seconds"), cost: biggest("cost") };
-  const y = (share) => top + (1 - share) * (H - top - bottom);
-  for (const [ai, id] of AIS) {
-    const graph = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
-    graph.setAttribute("aria-label", `${ai === "other" ? other.name : "Pyinsect"}: accuracy, speed and cost as photos are added`);
-    graph.append(svg("path", { class: "axis", d: `M${left} ${top}V${y(0)}H${W - right}` }));
-    for (const n of [0, Math.round(most / 2), most]) graph.append(svg("text", { x: x(n), y: y(0) + 16, "text-anchor": "middle" }, n));
-    graph.append(svg("text", { x: (left + W - right) / 2, y: H - 4, "text-anchor": "middle" }, "Number of photos"));
-    {
-      for (const [kind, key] of [["accuracy", "right"], ["speed", "seconds"], ["cost", "cost"]]) {
-        const points = [[0, 0], ...totals.map((t, i) => [i + 1, t[ai][key] / scale[key]])];
-        graph.append(svg("polyline", { class: `line ${kind}`, points: points.map(([n, share]) => `${x(n)},${y(share)}`).join(" ") }));
-      }
-    }
-    $(`graph${id}`).replaceChildren(graph);
+  const W = 360, H = 250, left = 46, right = 52, top = 10, bottom = 40;
+  const count = totals.length, most = Math.max(2, count);
+  const lines = AIS.map(([ai]) => ({ ai, values: totals.map((t, i) => (100 * t[ai].right) / (i + 1)) }));
+  // Zoom in on the part with lines, but always show at least 40 to 100.
+  const low = Math.min(60, ...lines.flatMap((l) => l.values));
+  const from = Math.max(0, Math.floor((low - 1) / 20) * 20);
+  const x = (n) => left + ((n - 1) / (most - 1)) * (W - left - right);
+  const y = (v) => top + ((100 - v) / (100 - from)) * (H - top - bottom);
+  const graph = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+  graph.setAttribute("aria-label", "Accuracy of both AIs as photos are added");
+  for (let v = from; v <= 100; v += from < 40 ? 20 : 10) {
+    graph.append(svg("path", { class: "grid", d: `M${left} ${y(v)}H${W - right}` }));
+    graph.append(svg("text", { x: left - 6, y: y(v) + 4, "text-anchor": "end" }, `${v}%`));
   }
+  graph.append(svg("path", { class: "axis", d: `M${left} ${top}V${y(from)}H${W - right}` }));
+  const step = Math.ceil(most / 8);
+  for (let n = 1; n <= most; n += step) graph.append(svg("text", { x: x(n), y: y(from) + 15, "text-anchor": "middle" }, n));
+  graph.append(svg("text", { class: "title", x: (left + W - right) / 2, y: H - 4, "text-anchor": "middle" }, "Number of photos"));
+  graph.append(svg("text", { class: "title", transform: `translate(11 ${y((100 + from) / 2)}) rotate(-90)`, "text-anchor": "middle" }, "Accuracy"));
+  for (const { ai, values } of lines) {
+    graph.append(svg("polyline", { class: `line ${ai}`, points: values.map((v, i) => `${x(i + 1)},${y(v)}`).join(" ") }));
+    values.forEach((v, i) => graph.append(svg("circle", { class: `dot ${ai}`, cx: x(i + 1), cy: y(v), r: count > 25 ? 2 : 4 })));
+  }
+  // Number labels at the end of each line. If the two are close, push them apart.
+  if (count) {
+    const spots = lines.map((l) => ({ ai: l.ai, v: l.values[count - 1], at: y(l.values[count - 1]) + 5 })).sort((a, b) => a.at - b.at);
+    const gap = spots[1].at - spots[0].at;
+    if (gap < 15) { spots[0].at -= (15 - gap) / 2; spots[1].at += (15 - gap) / 2; }
+    for (const s of spots) graph.append(svg("text", { class: `end ${s.ai}`, x: x(count) + 8, y: s.at }, `${Math.round(s.v)}%`));
+  }
+  $("graph").replaceChildren(graph);
 }
 
 const short = (n) => (n < 1000 ? String(n) : `${Math.round(n / 1000)}K`);
@@ -399,7 +437,7 @@ function drawBoxes() {
     const boxes = [
       ["Accuracy", mine && `${Math.round((100 * mine.right) / totals.length)}%`, mine && `${mine.right} of ${totals.length} right`],
       ["Speed", mine && `${Math.round((100 * fastest) / mine.seconds) || 0}%`],
-      ["Cost", mine && money(mine.cost)],
+      ["Cost", mine && money(mine.cost), mine && ai === "other" && other.estimate ? "if paid" : null],
       ["Tokens", mine && short(mine.tokens)],
     ];
     $(`boxes${id}`).replaceChildren(...boxes.map(([name, value, note]) => {
@@ -422,6 +460,7 @@ async function runBenchmark(files) {
   if (!pictures.length) { status("No photos found there."); return; }
   if (!known.length) { status("I can't tell the right answers. Name the folder after the insect, or pick the correct insect above."); return; }
   running = true;
+  setBusy(1);
   stopped = false;
   totals = [];
   drawBoxes();
@@ -461,7 +500,7 @@ async function runBenchmark(files) {
     const skipped = pictures.length - known.length;
     status(`${stopped ? "Stopped" : "Done"}: ${totals.length} photo${totals.length === 1 ? "" : "s"}.`
       + (skipped ? ` ${skipped} skipped (no insect name).` : "")
-      + (failed ? ` ${failed} didn't work.` : "")
+      + (failed ? ` ${failed} didn't work.${other.setModel ? " You can pick another model in Settings." : ""}` : "")
       + (other.overLimit?.() ? " The spending limit is used up." : "")
       + (totals.length < 30 ? " Too few to prove much yet." : ""));
   } catch (e) {
@@ -469,6 +508,7 @@ async function runBenchmark(files) {
     status(NOT_LOADED);
   } finally {
     running = false;
+    setBusy(-1);
     $("stop").hidden = true;
     for (const id of ["pickFolder", "pickMany"]) $(id).disabled = false;
   }

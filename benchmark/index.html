@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="../assets/site.css?v=20261120a">
-<link rel="stylesheet" href="benchmark.css?v=22">
+<link rel="stylesheet" href="benchmark.css?v=24">
 </head>
 <body>
 <main id="start" class="wrap page">
@@ -81,20 +81,20 @@
     <p id="benchStatus" class="muted center" role="status">Name each folder or photo after its insect, so the app knows the right answer.</p>
     <button id="stop" class="btn" type="button" hidden>Stop</button>
 
-    <ul class="legend">
-      <li><span class="key accuracy"></span>Accuracy</li>
-      <li><span class="key speed"></span>Speed</li>
-      <li><span class="key cost"></span>Cost</li>
-    </ul>
+    <div class="panel one">
+      <div id="graph" class="graph"></div>
+      <ul class="legend">
+        <li><span class="key pyinsect"></span>Pyinsect (specialist)</li>
+        <li><span class="key other"></span><span><span class="otherName">Other AI</span> (generalist)</span></li>
+      </ul>
+    </div>
     <div class="results">
     <div class="panel one">
       <h3>Pyinsect <small>(specialist)</small></h3>
-      <div id="graphPyinsect" class="graph"></div>
       <div id="boxesPyinsect" class="boxes"></div>
     </div>
     <div class="panel one">
       <h3><span class="otherName">Other AI</span> <small class="otherKind"></small></h3>
-      <div id="graphOther" class="graph"></div>
       <div id="boxesOther" class="boxes"></div>
     </div>
     </div>
@@ -103,9 +103,9 @@
       <ul>
         <li><strong>Accuracy</strong>: out of 100 photos, how many the first guess would get right. Under it is the real count.</li>
         <li><strong>Speed</strong>: the faster AI gets 100%. An AI that takes twice as long gets 50%.</li>
-        <li><strong>Cost</strong>: dollars spent on all the photos. AIs that run on your device cost $0.</li>
+        <li><strong>Cost</strong>: dollars for all the photos. AIs that run on your device cost $0. For OpenRouter it is what it might cost if paid, estimated from the tokens used, at $0.06 per million in and $0.24 per million out (the price of the text-only Nemotron 3 Nano). The free models we use do not charge this.</li>
         <li><strong>Tokens</strong>: small pieces of words and pictures that a chatbot AI reads and writes. K means thousand. Only OpenRouter counts them here, so the others show 0.</li>
-        <li><strong>Graphs</strong>: accuracy, speed and cost added up, photo by photo. A lower speed line is faster. Both graphs use the same scale.</li>
+        <li><strong>Graph</strong>: how accurate each AI is so far, photo by photo. The first few photos jump around a lot.</li>
         <li>Pyinsect is our own model. Use photos it didn't learn from, and at least 30 of them.</li>
         <li>The other AI sees the whole photo. Pyinsect cuts around the insect first.</li>
         <li>With CLIP, your photos stay on your device. With OpenRouter, they are sent to OpenRouter and the model's company, and the speed includes the internet.</li>
@@ -115,9 +115,13 @@
   <details id="settings" class="panel">
     <summary>⚙️ Settings</summary>
     <p>Pyinsect is compared with <strong class="otherName">Other AI</strong>.</p>
+    <div id="modelRow" hidden>
+      <label class="truth">Model
+        <select id="model"></select>
+      </label>
+      <p id="modelStatus" class="muted" role="status"></p>
+    </div>
     <button id="changeAi" class="btn" type="button">Change AI</button>
-    <button id="copyKey" class="btn" type="button" hidden>Copy saved key</button>
-    <p id="copyStatus" class="muted" role="status"></p>
   </details>
   <datalist id="names"></datalist>
 </main>
@@ -126,7 +130,7 @@
 <script src="../assets/insect-finder.js?v=20261028a"></script>
 <script src="../assets/species.js?v=20261028a"></script>
 <script src="../assets/models/pyinsect-2.8-oregon.js?v=20261118a"></script>
-<script src="other-ai.js?v=18"></script>
-<script type="module" src="benchmark.js?v=23"></script>
+<script src="other-ai.js?v=20"></script>
+<script type="module" src="benchmark.js?v=27"></script>
 </body>
 </html>
