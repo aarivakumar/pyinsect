@@ -287,7 +287,7 @@ function showGuesses(results) {
     }));
     $(`speed${id}`).textContent = result ? `${(result.ms / 1000).toFixed(1)} s` : "–";
   }
-  $("costOther").textContent = results?.theirs ? money(results.theirs.cost) : "–";
+  $("costOther").textContent = results?.theirs ? (other.estimate ? "about " : "") + money(results.theirs.cost) : "–";
 }
 
 let current = null;   // the photo on screen
@@ -396,7 +396,7 @@ function drawBoxes() {
     const boxes = [
       ["Accuracy", mine && `${Math.round((100 * mine.right) / totals.length)}%`, mine && `${mine.right} of ${totals.length} right`],
       ["Speed", mine && `${Math.round((100 * fastest) / mine.seconds) || 0}%`],
-      ["Cost", mine && money(mine.cost)],
+      ["Cost", mine && money(mine.cost), mine && ai === "other" && other.estimate ? "estimate" : null],
       ["Tokens", mine && short(mine.tokens)],
     ];
     $(`boxes${id}`).replaceChildren(...boxes.map(([name, value, note]) => {
