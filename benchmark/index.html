@@ -103,7 +103,7 @@
       <ul>
         <li><strong>Accuracy</strong>: out of 100 photos, how many the first guess would get right. Under it is the real count.</li>
         <li><strong>Speed</strong>: the faster AI gets 100%. An AI that takes twice as long gets 50%.</li>
-        <li><strong>Cost</strong>: dollars spent on all the photos. AIs that run on your device cost $0.</li>
+        <li><strong>Cost</strong>: dollars for all the photos. AIs that run on your device cost $0. For OpenRouter it is an estimate from the tokens used, at $0.06 per million in and $0.24 per million out (the price of the text-only Nemotron 3 Nano). The free model we use does not charge this.</li>
         <li><strong>Tokens</strong>: small pieces of words and pictures that a chatbot AI reads and writes. K means thousand. Only OpenRouter counts them here, so the others show 0.</li>
         <li><strong>Graph</strong>: how accurate each AI is so far, photo by photo. The first few photos jump around a lot.</li>
         <li>Pyinsect is our own model. Use photos it didn't learn from, and at least 30 of them.</li>
@@ -124,7 +124,7 @@
 <script src="../assets/insect-finder.js?v=20261028a"></script>
 <script src="../assets/species.js?v=20261028a"></script>
 <script src="../assets/models/pyinsect-2.8-oregon.js?v=20261118a"></script>
-<script src="other-ai.js?v=18"></script>
-<script type="module" src="benchmark.js?v=25"></script>
+<script src="other-ai.js?v=19"></script>
+<script type="module" src="benchmark.js?v=26"></script>
 </body>
 </html>
