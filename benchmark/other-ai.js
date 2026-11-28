@@ -4,6 +4,9 @@
 window.OtherAI = (() => {
 const OPENROUTER = "https://openrouter.ai/api/v1";
 const OPENROUTER_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free";   // ":free" models cost $0, but limit how often you can ask
+// The free model costs $0. To show what asking could cost, we estimate with the prices (dollars per
+// million tokens) of the paid, text-only NVIDIA Nemotron 3 Nano 30B A3B.
+const PRICE_IN = 0.06, PRICE_OUT = 0.24;
 const MAX_DOLLARS = 1;   // stop asking after about this much, each time the page is open
 const CLIP_MODEL = "Xenova/clip-vit-base-patch32";
 const TRANSFORMERS = "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
@@ -98,6 +101,7 @@ function openRouter(species, key) {
   return {
     name: "OpenRouter",
     kind: `(generalist) ${OPENROUTER_MODEL}`,
+    estimate: true,   // its cost is an estimate, not money spent
     async getReady() {},
     async ask(file) {
       if (spent >= MAX_DOLLARS) throw new Error("spending limit");
@@ -115,8 +119,9 @@ function openRouter(species, key) {
       if (!res.ok) throw new Error(`OpenRouter said ${res.status}`);
       const reply = await res.json();
       const ms = performance.now() - start;
-      const cost = Number(reply.usage?.cost) || 0;
-      spent += cost;
+      spent += Number(reply.usage?.cost) || 0;   // real money, for the spending limit
+      const cost = ((Number(reply.usage?.input_tokens) || 0) * PRICE_IN
+        + (Number(reply.usage?.output_tokens) || 0) * PRICE_OUT) / 1e6;
       const text = (reply.output || []).filter((item) => item.type === "message")
         .flatMap((item) => item.content || []).filter((part) => part.type === "output_text")
         .map((part) => part.text).join("");
